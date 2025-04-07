@@ -1,62 +1,34 @@
-
 #include "nvs_flash.h"
-// MQTT Stuff
 #include "mqtt.h"
-// Host
 #include "host.h"
-// Debug
 #include "esp_log.h"
+#include "driver/gpio.h"
 
-const char* Wifi_SSID = "ATTMfTv66a";
-const char* Wifi_Pass = "wfd97s#fg+gx";
-
-// AWS Stuff
-#define CONFIG_AWS_IOT_MQTT_TX_BUF_LEN 100
-#define CONFIG_AWS_IOT_MQTT_RX_BUF_LEN 100
-#define CONFIG_AWS_IOT_MQTT_NUM_SUBSCRIBE_HANDLERS 4
-
-const char* Mqtt_Broker_Url  = "mqtts://a2m733ysclyt2b-ats.iot.us-east-2.amazonaws.com";
-// Host object
+const char* Wifi_SSID = "SETUP-5BFD";
+const char* Wifi_Pass = "cactus0357attic";
+const char* Mqtt_Broker_Url  = "mqtts://a3ei6kcz3omkm6-ats.iot.us-east-2.amazonaws.com";
 host_t host;
-void send_env_data(host_t* host);
+
+#define LED_PIN GPIO_NUM_2 // Change to your relay or indicator pin
 
 void app_main(void)
 {
-  //Initialize NVS
-  esp_err_t ret = nvs_flash_init();
-  if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-    ESP_ERROR_CHECK(nvs_flash_erase());
-    ret = nvs_flash_init();
-  }
-  ESP_ERROR_CHECK(ret);
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
+    gpio_set_direction(LED_PIN, GPIO_MODE_OUTPUT);
+    host.wifi_creds.Wifi_SSID = Wifi_SSID;
+    host.wifi_creds.Wifi_Pass = Wifi_Pass;
+    init_host(&host);
+    // Attach custom handler
+    //esp_mqtt_client_register_event(&(host.mqtt_client), MQTT_EVENT_DATA, mqtt_event_handler_cb, NULL);
+    mqtt_app_start(Mqtt_Broker_Url, &(host.mqtt_client));
+    esp_mqtt_client_subscribe(host.mqtt_client, "Final_TempHumidity", 1);
 
-  host.wifi_creds.Wifi_SSID = Wifi_SSID;
-  host.wifi_creds.Wifi_Pass = Wifi_Pass;
-
-  init_host(&host);
-
-  mqtt_app_start(Mqtt_Broker_Url, &(host.mqtt_client));
-  while(1)
-  {
-    send_env_data(&host);
-    vTaskDelay(MS2TICK(500));
-  }
-}
-
-void send_env_data(host_t* host)
-{
-  int msg_id;
-  char buff[40];
-  htu21_data_t env_data;
-  if(host->htu21.msg_queue == NULL)
-  {
-    LOG_ERROR("MSG queue does not exist cannot send enviornment data.");
-  }
-
-  xQueuePeek(host->htu21.msg_queue, &env_data, 5);
-  sprintf(buff, "{\"temperature\": %.2f, \"humidity\": %.2f}",
-    env_data.temperature, env_data.humidity);
-  msg_id = esp_mqtt_client_publish(host->mqtt_client, "/topic/env_data",
-    buff, 0, 1, 0);
-  LOG_PRINTF("Sent publish successful, msg_id=%d", msg_id);
+    while(1) {
+      vTaskDelay(MS2TICK(500));
+    }
 }
