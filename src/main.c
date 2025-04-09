@@ -4,8 +4,8 @@
 #include "esp_log.h"
 #include "driver/gpio.h"
 
-const char* Wifi_SSID = "SETUP-5BFD";
-const char* Wifi_Pass = "cactus0357attic";
+const char* Wifi_SSID = "SETUP-A799";
+const char* Wifi_Pass = "Angle1478";
 const char* Mqtt_Broker_Url  = "mqtts://a3ei6kcz3omkm6-ats.iot.us-east-2.amazonaws.com";
 host_t host;
 
